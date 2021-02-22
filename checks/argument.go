@@ -13,19 +13,20 @@ import (
 
 const ArgumentCheck = "argument"
 
-// constantDefinitions is used to save lines (by number) which contain a constant definition.
-var constantDefinitions = map[string]bool{}
-var mu sync.RWMutex
-
 type ArgumentAnalyzer struct {
 	config *config.Config
 	pass   *analysis.Pass
+
+	mu             sync.RWMutex
+	constPositions map[string]bool
 }
 
 func NewArgumentAnalyzer(pass *analysis.Pass, config *config.Config) *ArgumentAnalyzer {
 	return &ArgumentAnalyzer{
 		pass:   pass,
 		config: config,
+
+		constPositions: make(map[string]bool),
 	}
 }
 
@@ -44,9 +45,9 @@ func (a *ArgumentAnalyzer) Check(n ast.Node) {
 		if expr.Tok == token.CONST {
 			pos := a.pass.Fset.Position(expr.TokPos)
 
-			mu.Lock()
-			constantDefinitions[pos.Filename+":"+strconv.Itoa(pos.Line)] = true
-			mu.Unlock()
+			a.mu.Lock()
+			a.constPositions[constPosKey(pos)] = true
+			a.mu.Unlock()
 		}
 	}
 }
@@ -54,21 +55,18 @@ func (a *ArgumentAnalyzer) Check(n ast.Node) {
 func (a *ArgumentAnalyzer) checkCallExpr(expr *ast.CallExpr) {
 	pos := a.pass.Fset.Position(expr.Pos())
 
-	mu.RLock()
-	ok := constantDefinitions[pos.Filename+":"+strconv.Itoa(pos.Line)]
-	mu.RUnlock()
+	a.mu.RLock()
+	isDefinedAsConstant := a.constPositions[constPosKey(pos)]
+	a.mu.RUnlock()
 
-	if ok {
+	if isDefinedAsConstant {
 		return
 	}
 
-	switch f := expr.Fun.(type) {
-	case *ast.SelectorExpr:
-		switch prefix := f.X.(type) {
-		case *ast.Ident:
-			if a.config.IsIgnoredFunction(prefix.Name + "." + f.Sel.Name) {
-				return
-			}
+	if f, isSelectorExpr := expr.Fun.(*ast.SelectorExpr); isSelectorExpr {
+		prefix, isIdentifier := f.X.(*ast.Ident)
+		if isIdentifier && a.config.IsIgnoredFunction(prefix.Name+"."+f.Sel.Name) {
+			return
 		}
 	}
 
@@ -81,15 +79,13 @@ func (a *ArgumentAnalyzer) checkCallExpr(expr *ast.CallExpr) {
 			// If it's a magic number and has no previous element, report it
 			if i == 0 {
 				a.pass.Reportf(x.Pos(), reportMsg, x.Value, ArgumentCheck)
-			} else {
-				// Otherwise check the previous element type
-				switch expr.Args[i-1].(type) {
-				case *ast.ChanType:
-					// When it's not a simple buffered channel, report it
-					if a.isMagicNumber(x) {
-						a.pass.Reportf(x.Pos(), reportMsg, x.Value, ArgumentCheck)
-					}
-				}
+				continue
+			}
+
+			// Otherwise check the previous element type
+			_, isChannel := expr.Args[i-1].(*ast.ChanType)
+			if isChannel && a.isMagicNumber(x) {
+				a.pass.Reportf(x.Pos(), reportMsg, x.Value, ArgumentCheck)
 			}
 		case *ast.BinaryExpr:
 			a.checkBinaryExpr(x)
@@ -115,4 +111,8 @@ func (a *ArgumentAnalyzer) checkBinaryExpr(expr *ast.BinaryExpr) {
 
 func (a *ArgumentAnalyzer) isMagicNumber(l *ast.BasicLit) bool {
 	return (l.Kind == token.FLOAT || l.Kind == token.INT) && !a.config.IsIgnoredNumber(l.Value)
+}
+
+func constPosKey(pos token.Position) string {
+	return pos.Filename + ":" + strconv.Itoa(pos.Line)
 }

@@ -5,12 +5,12 @@ import (
 	"go/ast"
 	"strings"
 
-	"github.com/tommy-muehle/go-mnd/v2/checks"
-	"github.com/tommy-muehle/go-mnd/v2/config"
-
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
+
+	"github.com/tommy-muehle/go-mnd/v2/checks"
+	"github.com/tommy-muehle/go-mnd/v2/config"
 )
 
 const Doc = `magic number detector`
