@@ -56,18 +56,22 @@ func (a *OperationAnalyzer) Check(n ast.Node) {
 	}
 }
 
+func (a *OperationAnalyzer) report(x *ast.BasicLit) {
+	a.pass.Reportf(x.Pos(), reportMsg, x.Value, CaseCheck)
+}
+
 func (a *OperationAnalyzer) checkBinaryExpr(expr *ast.BinaryExpr) {
 	switch x := expr.X.(type) {
 	case *ast.BasicLit:
 		if a.isMagicNumber(x) {
-			a.pass.Reportf(x.Pos(), reportMsg, x.Value, OperationCheck)
+			a.report(x)
 		}
 	}
 
 	switch y := expr.Y.(type) {
 	case *ast.BasicLit:
 		if a.isMagicNumber(y) {
-			a.pass.Reportf(y.Pos(), reportMsg, y.Value, OperationCheck)
+			a.report(y)
 		}
 	}
 }

@@ -38,16 +38,20 @@ func (a *ConditionAnalyzer) Check(n ast.Node) {
 	switch x := expr.X.(type) {
 	case *ast.BasicLit:
 		if a.isMagicNumber(x) {
-			a.pass.Reportf(x.Pos(), reportMsg, x.Value, ConditionCheck)
+			a.report(x)
 		}
 	}
 
 	switch y := expr.Y.(type) {
 	case *ast.BasicLit:
 		if a.isMagicNumber(y) {
-			a.pass.Reportf(y.Pos(), reportMsg, y.Value, ConditionCheck)
+			a.report(y)
 		}
 	}
+}
+
+func (a *ConditionAnalyzer) report(x *ast.BasicLit) {
+	a.pass.Reportf(x.Pos(), reportMsg, x.Value, CaseCheck)
 }
 
 func (a *ConditionAnalyzer) isMagicNumber(l *ast.BasicLit) bool {

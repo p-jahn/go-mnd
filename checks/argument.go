@@ -52,6 +52,10 @@ func (a *ArgumentAnalyzer) Check(n ast.Node) {
 	}
 }
 
+func (a *ArgumentAnalyzer) report(x *ast.BasicLit) {
+	a.pass.Reportf(x.Pos(), reportMsg, x.Value, ArgumentCheck)
+}
+
 func (a *ArgumentAnalyzer) checkCallExpr(expr *ast.CallExpr) {
 	pos := a.pass.Fset.Position(expr.Pos())
 
@@ -78,14 +82,14 @@ func (a *ArgumentAnalyzer) checkCallExpr(expr *ast.CallExpr) {
 			}
 			// If it's a magic number and has no previous element, report it
 			if i == 0 {
-				a.pass.Reportf(x.Pos(), reportMsg, x.Value, ArgumentCheck)
+				a.report(x)
 				continue
 			}
 
 			// Otherwise check the previous element type
 			_, isChannel := expr.Args[i-1].(*ast.ChanType)
 			if isChannel && a.isMagicNumber(x) {
-				a.pass.Reportf(x.Pos(), reportMsg, x.Value, ArgumentCheck)
+				a.report(x)
 			}
 		case *ast.BinaryExpr:
 			a.checkBinaryExpr(x)
@@ -97,14 +101,14 @@ func (a *ArgumentAnalyzer) checkBinaryExpr(expr *ast.BinaryExpr) {
 	switch x := expr.X.(type) {
 	case *ast.BasicLit:
 		if a.isMagicNumber(x) {
-			a.pass.Reportf(x.Pos(), reportMsg, x.Value, ArgumentCheck)
+			a.report(x)
 		}
 	}
 
 	switch y := expr.Y.(type) {
 	case *ast.BasicLit:
 		if a.isMagicNumber(y) {
-			a.pass.Reportf(y.Pos(), reportMsg, y.Value, ArgumentCheck)
+			a.report(y)
 		}
 	}
 }

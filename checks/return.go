@@ -39,7 +39,7 @@ func (a *ReturnAnalyzer) Check(n ast.Node) {
 		switch x := expr.(type) {
 		case *ast.BasicLit:
 			if a.isMagicNumber(x) {
-				a.pass.Reportf(x.Pos(), reportMsg, x.Value, ReturnCheck)
+				a.report(x)
 			}
 		case *ast.BinaryExpr:
 			a.checkBinaryExpr(x)
@@ -47,18 +47,22 @@ func (a *ReturnAnalyzer) Check(n ast.Node) {
 	}
 }
 
+func (a *ReturnAnalyzer) report(x *ast.BasicLit) {
+	a.pass.Reportf(x.Pos(), reportMsg, x.Value, CaseCheck)
+}
+
 func (a *ReturnAnalyzer) checkBinaryExpr(expr *ast.BinaryExpr) {
 	switch x := expr.X.(type) {
 	case *ast.BasicLit:
 		if a.isMagicNumber(x) {
-			a.pass.Reportf(x.Pos(), reportMsg, x.Value, ReturnCheck)
+			a.report(x)
 		}
 	}
 
 	switch y := expr.Y.(type) {
 	case *ast.BasicLit:
 		if a.isMagicNumber(y) {
-			a.pass.Reportf(y.Pos(), reportMsg, y.Value, ReturnCheck)
+			a.report(y)
 		}
 	}
 }

@@ -36,7 +36,7 @@ func (a *AssignAnalyzer) Check(n ast.Node) {
 		switch x := expr.Value.(type) {
 		case *ast.BasicLit:
 			if a.isMagicNumber(x) {
-				a.pass.Reportf(x.Pos(), reportMsg, x.Value, AssignCheck)
+				a.report(x)
 			}
 		case *ast.BinaryExpr:
 			a.checkBinaryExpr(x)
@@ -56,11 +56,15 @@ func (a *AssignAnalyzer) Check(n ast.Node) {
 	}
 }
 
+func (a *AssignAnalyzer) report(x *ast.BasicLit) {
+	a.pass.Reportf(x.Pos(), reportMsg, x.Value, AssignCheck)
+}
+
 func (a *AssignAnalyzer) checkUnaryExpr(expr *ast.UnaryExpr) {
 	switch x := expr.X.(type) {
 	case *ast.BasicLit:
 		if a.isMagicNumber(x) {
-			a.pass.Reportf(x.Pos(), reportMsg, x.Value, AssignCheck)
+			a.report(x)
 		}
 	}
 }
@@ -69,14 +73,14 @@ func (a *AssignAnalyzer) checkBinaryExpr(expr *ast.BinaryExpr) {
 	switch x := expr.X.(type) {
 	case *ast.BasicLit:
 		if a.isMagicNumber(x) {
-			a.pass.Reportf(x.Pos(), reportMsg, x.Value, AssignCheck)
+			a.report(x)
 		}
 	}
 
 	switch y := expr.Y.(type) {
 	case *ast.BasicLit:
 		if a.isMagicNumber(y) {
-			a.pass.Reportf(y.Pos(), reportMsg, y.Value, AssignCheck)
+			a.report(y)
 		}
 	}
 }
